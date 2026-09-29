@@ -1,0 +1,183 @@
+:root {
+  --bg: #0f172a; --card: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --ok: #22c55e; --warn: #eab308; --bad: #ef4444;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+header { padding: 20px 16px 8px; }
+header h1 { margin: 0; font-size: 1.5rem; }
+header p { margin: 4px 0 0; color: var(--muted); font-size: 0.9rem; }
+main { padding: 8px 16px 32px; max-width: 700px; margin: 0 auto; }
+
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px; margin-bottom: 12px;
+}
+.card h2 { margin: 0 0 10px; font-size: 1.05rem; }
+
+.pilot { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.pilot .full { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; }
+.pilot .color { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.pilot .del {
+  margin-left: auto; background: none; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer;
+}
+label { display: flex; flex-direction: column; font-size: 0.8rem; color: var(--muted); gap: 4px; }
+input, select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; font-size: 1rem; width: 100%;
+}
+.btn-primary {
+  width: 100%; padding: 14px; border: none; border-radius: 12px;
+  background: var(--accent); color: #0f172a; font-weight: 700;
+  font-size: 1rem; cursor: pointer; margin-bottom: 16px;
+}
+.btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+.status { padding: 10px 14px; border-radius: 10px; font-weight: 600; margin-bottom: 12px; }
+.status.ok { background: #14532d; color: #bbf7d0; }
+.status.warn { background: #713f12; color: #fef08a; }
+.status.bad { background: #7f1d1d; color: #fecaca; }
+
+table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+td, th { padding: 8px 6px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+td.ch { font-weight: 700; font-size: 1.1rem; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+
+.spectrum { position: relative; height: 80px; margin: 12px 0 4px; background: var(--bg);
+  border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
+.band { position: absolute; top: 10px; height: 40px; border-radius: 6px;
+  opacity: 0.85; font-size: 0.7rem; font-weight: 700; color: #0f172a;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.tick { position: absolute; bottom: 0; font-size: 0.65rem; color: var(--muted);
+  transform: translateX(-50%); border-left: 1px solid var(--border); padding: 0 3px 2px; height: 22px; }
+
+.conflicts { margin-top: 10px; font-size: 0.9rem; }
+.conflicts li { margin: 4px 0; }
+.info ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.88rem; }
+.info li { margin-bottom: 6px; }
+code { background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+.region-tag { font-size:.75em; padding:2px 6px; border-radius:4px; background:#334155; margin-left:.5em; }
+.hint { font-size:.85em; opacity:.85; margin:.25em 0; }
+.check { display:flex; align-items:center; gap:.5em; }
+.ce-zone { position:absolute; top:0; bottom:0; background:rgba(163,230,53,.08); border-left:1px dashed #a3e635; border-right:1px dashed #a3e635; }
+
+/* Checkbox-Labels: Zeile statt Spalte, Checkbox nicht strecken */
+label.check {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: .6em;
+  cursor: pointer;
+  text-align: left;
+}
+label.check input[type="checkbox"] {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: #38bdf8;   /* passt zur Akzentfarbe */
+  transform: scale(1.2);
+}
+
+/* CE-Schalter im Header wie eine kleine Pill */
+.ce-toggle {
+  display: inline-flex;
+  margin: 0 0 1em;
+  padding: .5em .9em;
+  border-radius: 999px;
+  background: #1e293b;
+  font-size: .9em;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;   /* alles links */
+  gap: .75em;
+  margin-bottom: 1.25em;
+  flex-wrap: wrap;
+}
+
+label.check {
+  display: flex; flex-direction: row; align-items: center;
+  gap: .6em; cursor: pointer; text-align: left;
+}
+label.check input[type="checkbox"] {
+  width: auto; flex: 0 0 auto; margin: 0;
+  accent-color: #38bdf8; transform: scale(1.2);
+}
+
+.ce-toggle {
+  padding: .45em .9em;
+  border-radius: 999px;
+  background: #1e293b;
+  font-size: .9em;
+}
+
+/* Segmented DE | EN */
+.lang {
+  display: inline-flex;
+  border-radius: 999px;
+  background: #1e293b;
+  padding: 3px;
+}
+.lang button {
+  border: 0; background: transparent; color: #94a3b8;
+  padding: .35em .8em; border-radius: 999px;
+  font: inherit; font-size: .85em; font-weight: 600; cursor: pointer;
+}
+.lang button.active { background: #38bdf8; color: #0f172a; }
+
+header { text-align: center; }
+
+.topbar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: .6em;
+  margin-bottom: 1em;
+}
+
+/* runder Flaggen-Knopf */
+.lang-flag {
+  width: 2.4em; height: 2.4em;
+  border-radius: 50%;
+  border: 2px solid #334155;
+  background: #1e293b;
+  font-size: 1.2em;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  transition: transform .15s, border-color .15s;
+}
+.lang-flag:hover { border-color: #38bdf8; transform: scale(1.05); }
+
+/* kompakter CE-Pill-Schalter */
+.ce-pill {
+  display: flex; align-items: center; gap: .5em;
+  border: 2px solid #334155;
+  background: #1e293b;
+  color: #94a3b8;
+  border-radius: 999px;
+  padding: .4em .9em;
+  font: inherit; font-weight: 600; font-size: .85em;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.ce-pill:hover { border-color: #38bdf8; }
+.ce-dot {
+  width: .6em; height: .6em; border-radius: 50%;
+  background: #475569;
+  transition: background .15s;
+}
+.ce-pill.active {
+  border-color: #38bdf8; color: #e2e8f0;
+}
+.ce-pill.active .ce-dot { background: #38bdf8; }

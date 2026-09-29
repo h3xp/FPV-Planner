@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-i18n="title">FPV Frequenzplaner</title>
+  <meta name="theme-color" content="#1e293b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <button type="button" id="langBtn" class="lang-flag" aria-label="Sprache wechseln">🇩🇪</button>
+      <button type="button" id="ceBtn" class="ce-pill" aria-pressed="false">
+        <span class="ce-dot"></span>
+        <span data-i18n="ceShort">CE</span>
+      </button>
+    </div>
+    <h1>📡 <span data-i18n="title">FPV Frequenzplaner</span></h1>
+    <p data-i18n="subtitle">5,8 GHz Kanäle für mehrere Piloten ohne Interferenzen</p>
+  </header>
+
+  <main>
+    <section id="pilots"></section>
+
+    <button id="addPilot" class="btn-primary">＋ Pilot hinzufügen</button>
+
+    <section id="result"></section>
+
+    <section class="card info">
+      <h2 data-i18n="infoTitle">Hinweise</h2>
+      <ul>
+        <li data-i18n="info1">Die Reihenfolge der Piloten spielt keine Rolle – es wird die Kombination mit dem größten Mindestabstand gesucht.</li>
+        <li data-i18n="info2">Digitale Systeme (DJI, Walksnail) haben breite Signale und stören Analog stärker als umgekehrt. Bei gemischten Gruppen möglichst wenige Piloten im 40-MHz-Modus.</li>
+        <li data-i18n="info3">Kanalfrequenzen digitaler Systeme sind Näherungswerte und können je nach Firmware/Region abweichen – bei Unsicherheit die Tabelle in app.js anpassen.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && !['localhost', '127.0.0.1'].includes(location.hostname))
+      navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>
