@@ -9,12 +9,14 @@ const $langBtn = document.getElementById('langBtn');
 
 const FLAGS = { de: '🇩🇪', en: '🇬🇧' };
 
+// Alle Frequenzen aus der itsfpv.de Channel Map (Screenshot) abgelesen und kalibriert.
 const analogBands = {
   R: [5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917],
-  A: [5865, 5845, 5825, 5805, 5785, 5765, 5745, 5725],
+  A: [5725, 5745, 5765, 5785, 5805, 5825, 5845, 5865],
   B: [5733, 5752, 5771, 5790, 5809, 5828, 5847, 5866],
-  E: [5705, 5685, 5665, 5645, 5885, 5905, 5925, 5945],
+  E: [5645, 5665, 5685, 5705, 5885, 5905, 5925, 5945],
   F: [5740, 5760, 5780, 5800, 5820, 5840, 5860, 5880],
+  H: [5653, 5693, 5733, 5773, 5813, 5853, 5893, 5933], // receiver-dependent (Screenshot Band H)
 };
 function bandChannels(bands, bw) {
   const out = [];
@@ -30,30 +32,69 @@ function ceFilter(channels) {
 }
 
 const analogAll = bandChannels(analogBands, 20);
-const hdzeroAll = bandChannels({ R: analogBands.R, F: analogBands.F, E: analogBands.E }, 20);
 
+// DJI Race Mode (nur O4 auf Goggles 3 / N3): reduzierte Bildqualität für geringere Latenz,
+// Kanäle sind RaceBand-kompatibel (R1–R8, gleiche Mittenfrequenzen wie Analog-RaceBand).
+// Quelle: itsfpv.de Channel Map (verifiziert). 20- und 40-MHz-Variante nutzen dieselben Zentren.
+function raceChannels(bw) { return seq('R', analogBands.R, bw); }
+const djiRaceModes = [
+  { id: 'race20', name: 'Race 20 MHz', race: true, fcc: raceChannels(20), ce: ceFilter(raceChannels(20)) },
+  { id: 'race40', name: 'Race 40 MHz', race: true, fcc: raceChannels(40), ce: ceFilter(raceChannels(40)) },
+];
+
+// HDZero-Presets (Screenshot): E1/F1/F2/F4 in Wide (27 MHz) und Narrow (17 MHz); RaceBand R1–R8.
+const hdzeroPreset = [
+  { band: 'E1', f: 5705 }, { band: 'F1', f: 5740 }, { band: 'F2', f: 5760 }, { band: 'F4', f: 5800 },
+];
+function hdzeroPresetChans(bw) { return hdzeroPreset.map(p => ({ id: p.band, f: p.f, bw })); }
+
+// Alle Kanalfrequenzen aus der itsfpv.de Channel Map (Screenshot) abgelesen (Achse kalibriert).
+// fcc = größere FCC/HAM-unlock-Liste, ce = stock-CE-Liste. Public-/Boot-Kanäle (dashed "P") sind nicht enthalten.
 const SYSTEMS = [
-  { id: 'analog', name: 'Analog 5.8 GHz', canUnlock: false, hamHint: true,
+  { id: 'analog', name: 'Analog 5.8 GHz (RaceBand/A/B/E/F/H)', canUnlock: false, hamHint: true,
     modes: [{ id: 'std', name: 'Standard', fcc: analogAll, ce: ceFilter(analogAll) }] },
-  { id: 'dji', name: 'DJI O3 / O4 Lite (Goggles 2/3/N3)', canUnlock: true,
+  { id: 'dji_o4', name: 'DJI O4 (Pro / Lite / Wide, Goggles 3/N3)', canUnlock: true, canRace: true,
     modes: [
-      { id: '20', name: '20 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5914, 5960], 20), ce: seq('CH', [5768, 5804, 5839, 5876], 20) },
-      { id: '40', name: '40 MHz', fcc: seq('CH', [5675, 5755, 5835], 40), ce: seq('CH', [5755, 5835], 40) },
+      { id: '10', name: '10 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5912], 10), ce: seq('CH', [5768, 5789, 5814], 10) },
+      { id: '20', name: '20 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5913], 20), ce: seq('CH', [5768, 5789, 5814], 20) },
+      { id: '40', name: '40 MHz', fcc: seq('CH', [5677, 5794, 5902], 40), ce: seq('CH', [5794], 40) },
+      { id: '60', name: '60 MHz', fcc: seq('CH', [5686, 5794, 5892], 60), ce: seq('CH', [5794], 60) },
+      ...djiRaceModes,
     ]},
-  { id: 'dji_o4p', name: 'DJI O4 Pro', canUnlock: true,
+  { id: 'dji_o3', name: 'DJI O3 (Goggles 2/3/Integra/V2)', canUnlock: true,
     modes: [
-      { id: '20', name: '20 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5914, 5960], 20), ce: seq('CH', [5768, 5804, 5839, 5876], 20) },
-      { id: '40', name: '40 MHz', fcc: seq('CH', [5675, 5755, 5835], 40), ce: seq('CH', [5755, 5835], 40) },
-      { id: '60', name: '60 MHz', fcc: seq('CH', [5700, 5830], 60) },
+      { id: '10', name: '10 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5912], 10), ce: seq('CH', [5768, 5804, 5839], 10) },
+      { id: '20', name: '20 MHz', fcc: seq('CH', [5669, 5705, 5768, 5804, 5839, 5876, 5912], 20), ce: seq('CH', [5768, 5804, 5840], 20) },
+      { id: '40', name: '40 MHz', fcc: seq('CH', [5677, 5794, 5902], 40), ce: seq('CH', [5794], 40) },
+    ]},
+  { id: 'dji_v1', name: 'DJI V1 / Caddx Vista', canUnlock: true,
+    modes: [
+      { id: '20', name: '20 MHz', fcc: seq('CH', [5660, 5695, 5735, 5770, 5805, 5878, 5914], 20), ce: seq('CH', [5735, 5770, 5805], 20) },
+      { id: '40', name: '40 MHz (50 Mbps)', fcc: seq('CH', [5695, 5770, 5878], 40) },
     ]},
   { id: 'walksnail', name: 'Walksnail Avatar', canUnlock: true,
     modes: [
-      { id: '20', name: '20 MHz', fcc: seq('CH', [5658, 5695, 5732, 5769, 5806, 5843, 5880, 5917], 20), ce: seq('CH', [5732, 5769, 5806, 5843], 20) },
-      { id: '40', name: '40 MHz', fcc: seq('CH', [5690, 5770, 5850], 40), ce: seq('CH', [5770, 5850], 40) },
+      { id: '20', name: '20 MHz', fcc: seq('CH', [5660, 5695, 5735, 5770, 5805, 5878, 5914], 20), ce: seq('CH', [5735, 5770, 5805], 20) },
+      { id: '40', name: '40 MHz (High bitrate)', fcc: seq('CH', [5695, 5770, 5878], 40) },
+    ]},
+  { id: 'walksnail_ascent', name: 'Walksnail Ascent', canUnlock: false,
+    modes: [
+      { id: '5', name: '5 MHz', fcc: seq('CH', [5740, 5770, 5805], 5), ce: ceFilter(seq('CH', [5740, 5770, 5805], 5)) },
+      { id: '10', name: '10 MHz', fcc: seq('CH', [5740, 5770, 5805], 10), ce: ceFilter(seq('CH', [5740, 5770, 5805], 10)) },
+      { id: '20', name: '20 MHz', fcc: seq('CH', [5740, 5770, 5805], 20), ce: ceFilter(seq('CH', [5740, 5770, 5805], 20)) },
     ]},
   { id: 'hdzero', name: 'HDZero', canUnlock: true, hamHint: true,
-    modes: [{ id: 'std', name: 'Standard', fcc: hdzeroAll, ce: ceFilter(hdzeroAll) }] },
+    modes: [
+      { id: 'race_w', name: 'RaceBand Wide (27 MHz)', fcc: raceChannels(27), ce: ceFilter(raceChannels(27)) },
+      { id: 'race_n', name: 'RaceBand Narrow (17 MHz)', fcc: raceChannels(17), ce: ceFilter(raceChannels(17)) },
+      { id: 'preset_w', name: 'Presets Wide (27 MHz)', fcc: hdzeroPresetChans(27), ce: ceFilter(hdzeroPresetChans(27)) },
+      { id: 'preset_n', name: 'Presets Narrow (17 MHz)', fcc: hdzeroPresetChans(17), ce: ceFilter(hdzeroPresetChans(17)) },
+    ]},
+  { id: 'betafpv_p1', name: 'BETAFPV P1 (ArtLynk)', canUnlock: false, hamHint: true,
+    modes: [{ id: 'std', name: '10 MHz', fcc: seq('CH', [5758, 5788, 5828], 10), ce: ceFilter(seq('CH', [5758, 5788, 5828], 10)) }] },
 ];
+
+const sysById = id => SYSTEMS.find(s => s.id === id);
 
 const COLORS = ['#38bdf8', '#f472b6', '#a3e635', '#fb923c', '#c084fc', '#facc15', '#2dd4bf', '#f87171'];
 const MAX_PILOTS = 8;
@@ -67,7 +108,7 @@ const I18N = {
     info3: 'Kanalfrequenzen digitaler Systeme sind Näherungswerte und können je nach Firmware/Region abweichen – bei Unsicherheit die Tabelle in app.js anpassen.',
     ceMode: 'CE-Modus (EU: 25 mW, eingeschränkte Kanäle)', subtitle: '5,8 GHz Kanäle für mehrere Piloten ohne Interferenzen',
     pilot: 'Pilot', remove: 'Entfernen', name: 'Name', system: 'System', bandwidth: 'Bandbreite', lock: 'Kanal fixieren (optional)', auto: 'automatisch',
-    fccUnlock: 'FCC-Unlock (Gerät kann FCC-Kanäle)', addPilot: '+ Pilot hinzufügen', result: 'Empfohlene Einstellungen',
+    fccUnlock: 'FCC-Unlock (Gerät kann FCC-Kanäle)', raceMode: 'Race Mode (RaceBand, geringere Latenz)', addPilot: '+ Pilot hinzufügen', result: 'Empfohlene Einstellungen',
     thPilot: 'Pilot', thSystem: 'System', thChannel: 'Kanal', thFreq: 'Frequenz',
     ok: '✅ Alle Signale haben ausreichend Abstand.', single: '✅ Nur ein Pilot – freie Kanalwahl.',
     warn: mg => `⚠️ Knapp – kleinster Abstand nur ${mg} MHz. Funktioniert meist, aber möglichst Abstand halten.`,
@@ -76,6 +117,8 @@ const I18N = {
     imdConflict: (a, b, c) => `⚡ IMD-Konflikt: ${a} ↔ ${b} könnten ${c} stören (Intermodulation 3. Ordnung)`,
     noteR6Avoided: 'ℹ️ R6 wurde bei gemischtem Analog/Digital-Betrieb vermieden, da es mit dem digitalen Public-Channel überlappt.',
     hintCeLocked: 'ℹ️ CE-gelocktes Gerät: sendet mit 25 mW und nur auf CE-Kanälen – geringere Reichweite als FCC-Piloten.',
+    hintFccCapped: 'ℹ️ FCC-Gerät im CE-Modus: Es wird die FCC-Kanalnummer angezeigt (an der Brille so einstellen), aber nur Kanäle im CE-Band 5725–5875 MHz werden vorgeschlagen.',
+    hintRace: 'ℹ️ Race Mode: reduzierte Bildqualität für geringere Latenz, RaceBand-Kanäle (R1–R8). Nur DJI O4 auf Goggles 3 / N3.',
     noteCe: '🇪🇺 CE-Modus: max. 25 mW, Kanäle auf 5725–5875 MHz beschränkt.',
     noteHam: names => `📻 ${names}: Kanal außerhalb 5725–5850 MHz – in den USA nur mit Amateurfunklizenz erlaubt.`,
     noteWifi: '📡 Bei 2,4‑GHz‑RC (ELRS, Tracer): WLAN/Bluetooth an Goggles, Handy und Laptop ausschalten.',
@@ -87,7 +130,7 @@ const I18N = {
     info3: 'Channel frequencies of digital systems are approximations and may differ by firmware/region – adjust the table in app.js if in doubt.',
     ceMode: 'CE mode (EU: 25 mW, restricted channels)', subtitle: '5.8 GHz channels for multiple pilots without interference',
     pilot: 'Pilot', remove: 'Remove', name: 'Name', system: 'System', bandwidth: 'Bandwidth', lock: 'Lock channel (optional)', auto: 'automatic',
-    fccUnlock: 'FCC unlock (device can use FCC channels)', addPilot: '+ Add pilot', result: 'Recommended settings',
+    fccUnlock: 'FCC unlock (device can use FCC channels)', raceMode: 'Race mode (RaceBand, lower latency)', addPilot: '+ Add pilot', result: 'Recommended settings',
     thPilot: 'Pilot', thSystem: 'System', thChannel: 'Channel', thFreq: 'Frequency',
     ok: '✅ All signals have sufficient spacing.', single: '✅ Only one pilot – any channel works.',
     warn: mg => `⚠️ Tight – smallest gap is only ${mg} MHz. Usually works, but keep physical distance.`,
@@ -96,6 +139,8 @@ const I18N = {
     imdConflict: (a, b, c) => `⚡ IMD conflict: ${a} ↔ ${b} could interfere with ${c} (3rd-order intermodulation)`,
     noteR6Avoided: 'ℹ️ R6 was avoided in mixed analog/digital operation because it overlaps with the digital public channel.',
     hintCeLocked: 'ℹ️ CE-locked device: transmits at 25 mW on CE channels only – less range than FCC pilots.',
+    hintFccCapped: 'ℹ️ FCC device in CE mode: the FCC channel number is shown (set it on your goggles), but only channels within the CE band 5725–5875 MHz are suggested.',
+    hintRace: 'ℹ️ Race mode: reduced image quality for lower latency, RaceBand channels (R1–R8). DJI O4 on Goggles 3 / N3 only.',
     noteCe: '🇪🇺 CE mode: max. 25 mW, channels limited to 5725–5875 MHz.',
     noteHam: names => `📻 ${names}: channel outside 5725–5850 MHz – requires a ham licence in the US.`,
     noteWifi: '📡 With 2.4 GHz RC (ELRS, Tracer): turn off Wi‑Fi/Bluetooth on goggles, phone and laptop.',
@@ -107,8 +152,16 @@ function t(key, ...args) { const v = I18N[lang][key] ?? I18N.de[key] ?? key; ret
 
 let ceMode = localStorage.getItem('fpv-ce') === '1';
 let pilots = JSON.parse(localStorage.getItem('fpv-pilots') || 'null') ||
-  [{ name: 'Pilot 1', system: 'dji', mode: '20', lock: '', fcc: true }];
-pilots.forEach(p => { if (p.fcc === undefined) p.fcc = true; delete p.rc; });
+  [{ name: 'Pilot 1', system: 'dji_o4', mode: '20', lock: '', fcc: true, race: false }];
+// Migration alter System-IDs (dji/dji_o4p -> dji_o4). Abwärtskompatibel, normalize() repariert Modus/Lock danach.
+const SYSTEM_ID_MIGRATION = { dji: 'dji_o4', dji_o4p: 'dji_o4' };
+pilots.forEach(p => {
+  if (p.fcc === undefined) p.fcc = true;
+  if (p.race === undefined) p.race = false;
+  if (SYSTEM_ID_MIGRATION[p.system]) { p.system = SYSTEM_ID_MIGRATION[p.system]; p.mode = ''; p.lock = ''; }
+  if (!sysById(p.system)) { p.system = 'analog'; p.mode = ''; p.lock = ''; } // unbekannte ID -> sicherer Fallback
+  delete p.rc;
+});
 
 function save() {
   localStorage.setItem('fpv-pilots', JSON.stringify(pilots));
@@ -116,17 +169,34 @@ function save() {
   localStorage.setItem('fpv-lang', lang);
 }
 
-const sysById = id => SYSTEMS.find(s => s.id === id);
-
 function regionOf(p) {
   const s = sysById(p.system);
-  if (ceMode) return 'ce';
-  if (!s.canUnlock) return 'fcc';
+  // FCC-Systeme (FCC-Unlock gesetzt) bleiben auch im globalen CE-Modus FCC-Systeme:
+  // Sie behalten ihre FCC-Kanal-IDs, werden aber später aufs CE-Band begrenzt (ceCapped).
+  if (!s.canUnlock) return ceMode ? 'ce' : 'fcc';
   return p.fcc ? 'fcc' : 'ce';
 }
-function modesFor(p) { const r = regionOf(p); return sysById(p.system).modes.filter(m => m[r] && m[r].length); }
+// True, wenn ein FCC-Pilot im globalen CE-Modus läuft: FCC-Region, aber nur CE-Band-Kanäle empfehlen.
+function ceCapped(p) { return ceMode && regionOf(p) === 'fcc'; }
+// True, wenn der Pilot ein Race-fähiges System hat und Race Mode eingeschaltet ist.
+function raceOn(p) { return !!sysById(p.system).canRace && !!p.race; }
+function modesFor(p) {
+  const r = regionOf(p);
+  const race = raceOn(p);
+  return sysById(p.system).modes.filter(m => {
+    if (!!m.race !== race) return false;   // Race-Modi nur bei aktivem Race Mode, sonst normale Modi
+    const list = m[r];
+    if (!list || !list.length) return false;
+    return ceCapped(p) ? ceFilter(list).length > 0 : true;
+  });
+}
 function modeOf(p) { const ms = modesFor(p); return ms.find(m => m.id === p.mode) || ms[0]; }
-function channelsOf(p) { return modeOf(p)[regionOf(p)]; }
+function channelsOf(p) {
+  const m = modeOf(p);
+  if (!m) return [];
+  const list = m[regionOf(p)];
+  return ceCapped(p) ? ceFilter(list) : list;
+}
 function normalize(p) {
   const m = modeOf(p);
   if (!m) return;
@@ -223,6 +293,8 @@ function renderPilots() {
     const region = regionOf(p);
     const hints = [];
     if (!ceMode && sys.canUnlock && !p.fcc) hints.push(t('hintCeLocked'));
+    if (ceCapped(p)) hints.push(t('hintFccCapped'));
+    if (raceOn(p)) hints.push(t('hintRace'));
     return `
     <div class="card pilot" data-i="${i}">
       <div class="full">
@@ -235,7 +307,8 @@ function renderPilots() {
       <label>${t('system')}<select data-field="system">${SYSTEMS.map(s => `<option value="${s.id}" ${s.id === p.system ? 'selected' : ''}>${s.name}</option>`).join('')}</select></label>
       ${modes.length > 1 ? `<label>${t('bandwidth')}<select data-field="mode">${modes.map(m => `<option value="${m.id}" ${m.id === mode.id ? 'selected' : ''}>${m.name}</option>`).join('')}</select></label>` : ''}
       <label>${t('lock')}<select data-field="lock"><option value="">${t('auto')}</option>${chans.map(c => `<option value="${c.id}" ${c.id === p.lock ? 'selected' : ''}>${c.id} – ${c.f} MHz</option>`).join('')}</select></label>
-      ${sys.canUnlock && !ceMode ? `<label class="check full"><input type="checkbox" data-field="fcc" ${p.fcc ? 'checked' : ''}><span>${t('fccUnlock')}</span></label>` : ''}
+      ${sys.canRace ? `<label class="check full"><input type="checkbox" data-field="race" ${p.race ? 'checked' : ''}><span>${t('raceMode')}</span></label>` : ''}
+      ${sys.canUnlock ? `<label class="check full"><input type="checkbox" data-field="fcc" ${p.fcc ? 'checked' : ''}><span>${t('fccUnlock')}</span></label>` : ''}
       ${hints.length ? `<div class="full hints">${hints.map(h => `<p class="hint">${h}</p>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
@@ -262,7 +335,10 @@ function renderResult() {
   if (solution.r6Avoided) notes.push(t('noteR6Avoided'));
   const hamPilots = pilots.filter((p, i) => {
     const c = assign[i];
-    return !ceMode && sysById(p.system).hamHint && (c.f - c.bw / 2 < FCC_ISM_LO || c.f + c.bw / 2 > FCC_ISM_HI);
+    // Ham-Warnung, wenn das System sie generell braucht (Analog/HDZero) ODER ein DJI-Race-Pilot
+    // RaceBand-Kanäle außerhalb der US-ISM-Grenze nutzt.
+    const needsHamCheck = sysById(p.system).hamHint || raceOn(p);
+    return !ceMode && needsHamCheck && (c.f - c.bw / 2 < FCC_ISM_LO || c.f + c.bw / 2 > FCC_ISM_HI);
   });
   if (hamPilots.length) notes.push(t('noteHam', hamPilots.map(p => escapeHtml(p.name)).join(', ')));
   notes.push(t('noteWifi'));
@@ -289,16 +365,18 @@ function render() { pilots.forEach(normalize); applyStaticI18n(); renderPilots()
 
 if ($ce) $ce.addEventListener('click', () => { ceMode = !ceMode; render(); });
 if ($langBtn) $langBtn.addEventListener('click', () => { lang = lang === 'de' ? 'en' : 'de'; localStorage.setItem('fpv-lang', lang); render(); });
-$add.addEventListener('click', () => { if (pilots.length >= MAX_PILOTS) return; pilots.push({ name: `Pilot ${pilots.length + 1}`, system: 'analog', mode: 'std', lock: '', fcc: true }); render(); });
+$add.addEventListener('click', () => { if (pilots.length >= MAX_PILOTS) return; pilots.push({ name: `Pilot ${pilots.length + 1}`, system: 'analog', mode: 'std', lock: '', fcc: true, race: false }); render(); });
 $pilots.addEventListener('input', e => { if (e.target.dataset.field !== 'name') return; pilots[e.target.closest('.pilot').dataset.i].name = e.target.value; renderResult(); save(); });
 $pilots.addEventListener('change', e => {
   const i = e.target.closest('.pilot').dataset.i;
   const field = e.target.dataset.field;
   if (!field || field === 'name') return;
   const p = pilots[i];
-  if (field === 'fcc') p.fcc = e.target.checked; else p[field] = e.target.value;
-  if (field === 'system') { p.mode = sysById(p.system).modes[0].id; p.lock = ''; }
+  if (field === 'fcc' || field === 'race') p[field] = e.target.checked; else p[field] = e.target.value;
+  if (field === 'system') { p.mode = sysById(p.system).modes[0].id; p.lock = ''; p.race = false; }
   if (field === 'mode') p.lock = '';
+  // Race-Umschaltung: aktuellen Modus/Lock verwerfen, normalize() wählt den passenden Race-/Normal-Modus.
+  if (field === 'race') { p.mode = ''; p.lock = ''; }
   render();
 });
 $pilots.addEventListener('click', e => { if (e.target.dataset.act !== 'del') return; pilots.splice(e.target.closest('.pilot').dataset.i, 1); render(); });
